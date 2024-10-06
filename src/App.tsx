@@ -1,38 +1,59 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
-import { readFile, readTextFile } from "@tauri-apps/plugin-fs";
+import { readDir, readFile, readTextFile } from "@tauri-apps/plugin-fs";
 
 interface SegmentJson {
   text: string;
   media_path: string;
 }
 
+const SEGMENTS_DIR = '/home/anon/.flashcard/segments';
+
 function App() {
+  const [subtitle, setSubtitle] = useState<string>('');
+  const [segments, setSegments] = useState<string[]>([]);
+  const [index, setIndex] = useState<number>(0);
+  const [videoUrl, setVideoUrl] = useState<string>('');
+
+  const loadVideo = async (path: string) => {
+      try {
+        const jsonFile = await readTextFile(path);
+        const parsedJson: SegmentJson = JSON.parse(jsonFile);
+        setSubtitle(parsedJson.text);
+
+        const videoFile = await readFile(parsedJson.media_path);
+        // TODO get type from extension
+        const blob = new Blob([videoFile], { type: 'video/mp4' });
+        const videoUrl = URL.createObjectURL(blob);
+
+        setVideoUrl(videoUrl);
+
+      } catch (error) {
+        console.error('Failed to load video:', error);
+      }
+  }
+
   useEffect(() => {
-    const loadVideo = async () => {
-        try {
-          const jsonFile = await readTextFile('/home/anon/.flashcard/Scheherazade.1963.1080p.BluRay.x264.AAC5.1-[YTS.MX]_2693.75.json');
-          const parsedJson: SegmentJson = JSON.parse(jsonFile);
-          console.log(parsedJson.text);
-          console.log(parsedJson.media_path);
-
-          const videoFile = await readFile(parsedJson.media_path);
-          const blob = new Blob([videoFile], { type: 'video/mp4' });
-          const videoUrl = URL.createObjectURL(blob);
-
-          const videoElement = document.getElementById('video-player') as HTMLVideoElement;
-          videoElement.src = videoUrl;
-
-        } catch (error) {
-          console.error('Failed to load video:', error);
-        }
-    }
-    loadVideo();
+    readDir(SEGMENTS_DIR)
+    .then(entries => {
+      console.log(entries);
+      setSegments(entries.map(entry => entry.name));
+      loadVideo(`${SEGMENTS_DIR}/${entries[0].name}`);
+    });
   }, []);
 
+  const handleNext = async (e: any) => {
+    e.preventDefault();
+    console.log('handleNext', index);
+    await loadVideo(`${SEGMENTS_DIR}/${segments[index + 1]}`);
+    setIndex(prevIndex => prevIndex+1);
+  }
+
   return (
-    <div>
-      <video controls id="video-player" />
+    <div className="h-screen w-screen">
+      <video controls src={videoUrl} />
+      <div>{subtitle}</div>
+      <button onClick={handleNext}>Next</button>
     </div> 
   );
 }
