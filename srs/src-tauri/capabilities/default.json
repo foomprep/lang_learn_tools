@@ -32,6 +32,10 @@
           "path": "$HOME/.flashcard/**"
         }
       ]
+    },
+    {
+      "identifier": "http:default",
+      "allow": [{ "url": "https://api.openai.com/**"}]
     }
   ]
 }
