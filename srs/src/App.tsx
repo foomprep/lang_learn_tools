@@ -50,9 +50,8 @@ function App() {
   }
 
   return (
- 
-     <div className="h-screen w-screen flex flex-col">
-    <video controls src={videoUrl} />
+    <div className="h-screen w-screen flex flex-col gap-2 content-center">
+      <video controls src={videoUrl} />
       <div className="text-2xl">{subtitle}</div>
       <button onClick={handleNext}>Next</button>
     </div> 
