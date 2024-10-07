@@ -67,18 +67,22 @@ function App() {
 
   return (
     <div className="h-screen w-screen p-4 flex flex-col gap-3 text-2xl items-center justify-center">
-      <video controls preload="auto" src={videoUrl} />
-      <div className="flex gap-2 items-center text-4xl">
-        {subtitle.split(' ').map(word => {
-          return <div onClick={() => handleClick(word)} className="cursor-pointer">{word}</div>
-        })}
+      <video className="h-1/2" controls preload="auto" src={videoUrl} />
+      <button onClick={handleNext}>Next</button>
+      <div className="flex gap-2 w-full">
+        <div className="flex-grow w-1/2">
+          <div className="flex flex-wrap gap-2 items-center text-4xl">
+            {subtitle.split(' ').map(word => {
+              return <div onClick={() => handleClick(word)} className="cursor-pointer">{word}</div>
+            })}
+          </div>
+          <div>{translation}</div>
+        </div>
+        <div className="flex-grow w-1/2">
+          <div>{word.text}</div>
+          <div>{word.translation}</div>
+        </div>
       </div>
-      <div>{translation}</div>
-      <div>
-        <button onClick={handleNext}>Next</button>
-      </div>
-      <div>{word.text}</div>
-      <div>{word.translation}</div>
     </div> 
   );
 

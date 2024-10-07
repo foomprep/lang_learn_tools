@@ -8,7 +8,7 @@ export const getTranslation = async (text: string) => {
         },
         body: JSON.stringify({
           "model": "gpt-3.5-turbo",
-          "messages": [{"role": "user", "content": `Return a translation of ${text}`}]
+          "messages": [{"role": "user", "content": `Return a translation into English of French text: ${text}`}]
         })
       });
 
