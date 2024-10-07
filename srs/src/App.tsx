@@ -33,17 +33,16 @@ function App() {
       }
   }
 
+  useEffect(() => {
+    readDir(SEGMENTS_DIR)
+      .then(entries => {
+        console.log(entries);
+        const shuffledEntries = entries.sort(() => Math.random() - 0.5);
+        setSegments(shuffledEntries.map(entry => entry.name));
+        loadVideo(`${SEGMENTS_DIR}/${shuffledEntries[0].name}`);
+      });
+  }, []);
 
-useEffect(() => {
-  readDir(SEGMENTS_DIR)
-    .then(entries => {
-      console.log(entries);
-      const shuffledEntries = entries.sort(() => Math.random() - 0.5);
-      setSegments(shuffledEntries.map(entry => entry.name));
-      loadVideo(`${SEGMENTS_DIR}/${shuffledEntries[0].name}`);
-    });
-}, []);
-```
   const handleNext = async (e: any) => {
     e.preventDefault();
     console.log('handleNext', index);
@@ -51,13 +50,17 @@ useEffect(() => {
     setIndex(prevIndex => prevIndex+1);
   }
 
+
   return (
-    <div className="h-screen w-screen flex flex-col gap-2 content-center">
+    <div className="h-screen w-screen p-4 flex flex-col gap-2 text-2xl items-center justify-center">
       <video controls src={videoUrl} />
-      <div className="text-2xl">{subtitle}</div>
-      <button onClick={handleNext}>Next</button>
+      <div>{subtitle}</div>
+      <div>
+        <button onClick={handleNext}>Next</button>
+      </div>
     </div> 
   );
+
 }
 
 export default App;
