@@ -33,15 +33,17 @@ function App() {
       }
   }
 
-  useEffect(() => {
-    readDir(SEGMENTS_DIR)
+
+useEffect(() => {
+  readDir(SEGMENTS_DIR)
     .then(entries => {
       console.log(entries);
-      setSegments(entries.map(entry => entry.name));
-      loadVideo(`${SEGMENTS_DIR}/${entries[0].name}`);
+      const shuffledEntries = entries.sort(() => Math.random() - 0.5);
+      setSegments(shuffledEntries.map(entry => entry.name));
+      loadVideo(`${SEGMENTS_DIR}/${shuffledEntries[0].name}`);
     });
-  }, []);
-
+}, []);
+```
   const handleNext = async (e: any) => {
     e.preventDefault();
     console.log('handleNext', index);
