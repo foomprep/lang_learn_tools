@@ -139,7 +139,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
 
         let json_output_path = format!(
-            "{}/.flashcard/{}_{}.json",
+            "{}/.flashcard/segments/{}_{}.json",
             home_string,
             basename,
             &start_time.to_string(),
