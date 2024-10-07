@@ -22,3 +22,21 @@ export const getTranslation = async (text: string) => {
       console.error(error.message);
     }
 }
+javascript
+const fs = require('fs {
+');     try {
+                   const data = fs.readFileSync(filePath, 'utf-8');
+                const jsonContent = JSON.parse(data);
+
+                                                           if (jsonContent.media_path) {
+                  fs.unlinkSync(jsonContent.media_path);    .unlinkSync(filePath);
+                                                        fs
+                                                              }     } catch (error) {
+                    console.error('An error occurred:', error);
+                                                                 }
+                                                                }
+
+
+                                                                    
+
+function deleteFilesFromJson(filePath)
