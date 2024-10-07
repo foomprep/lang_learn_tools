@@ -1,3 +1,5 @@
+import { readTextFile, remove } from "@tauri-apps/plugin-fs";
+
 export const getTranslation = async (text: string) => {
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -22,21 +24,29 @@ export const getTranslation = async (text: string) => {
       console.error(error.message);
     }
 }
-javascript
-const fs = require('fs {
-');     try {
-                   const data = fs.readFileSync(filePath, 'utf-8');
-                const jsonContent = JSON.parse(data);
 
-                                                           if (jsonContent.media_path) {
-                  fs.unlinkSync(jsonContent.media_path);    .unlinkSync(filePath);
-                                                        fs
-                                                              }     } catch (error) {
-                    console.error('An error occurred:', error);
-                                                                 }
-                                                                }
-
-
-                                                                    
-
-function deleteFilesFromJson(filePath)
+export const deleteSegment = async (segmentPath: string): Promise<void> => {
+  try {
+    // Read the JSON file
+    const jsonContent = await readTextFile(segmentPath);
+    
+    // Parse the JSON content
+    const jsonData = JSON.parse(jsonContent);
+    
+    // Check if media_path property exists
+    if (!jsonData.hasOwnProperty('media_path')) {
+      throw new Error('media_path property not found in JSON');
+    }
+    
+    // Delete the media file
+    await remove(jsonData.media_path);
+    console.log(`Deleted media file: ${jsonData.media_path}`);
+    
+    // Delete the JSON file
+    await remove(segmentPath);
+    console.log(`Deleted JSON file: ${segmentPath}`);
+  } catch (error) {
+    console.error('An error occurred:', error);
+    throw error;
+  }
+}

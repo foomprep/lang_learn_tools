@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import { readDir, readFile, readTextFile } from "@tauri-apps/plugin-fs";
-import { getTranslation } from "./utils";
+import { deleteSegment, getTranslation } from "./utils";
 
 interface SegmentJson {
   text: string;
@@ -17,7 +17,7 @@ const SEGMENTS_DIR = '/home/anon/.flashcard/segments';
 
 function App() {
   const [subtitle, setSubtitle] = useState<string>('');
-  const [segments, setSegments] = useState<string[]>([]);
+  const [segments, setSegments] = useState<string[]>([]); // List of file names in SEGMENTS_DIR
   const [index, setIndex] = useState<number>(0);
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [translation, setTranslation] = useState<string>('');
@@ -65,10 +65,19 @@ function App() {
     setIndex(prevIndex => prevIndex+1);
   }
 
+  const handleDelete = async (e: any) => {
+    const currentSegment = segments[index];
+    await deleteSegment(`${SEGMENTS_DIR}/${currentSegment}`);
+    await handleNext(e);
+  }
+
   return (
     <div className="h-screen w-screen p-4 flex flex-col gap-3 text-2xl items-center justify-center">
       <video className="h-1/2" controls preload="auto" src={videoUrl} />
-      <button onClick={handleNext}>Next</button>
+      <div className="flex gap-3">
+        <button onClick={handleNext}>Next</button>
+        <button onClick={handleDelete}>Remove</button>
+      </div>
       <div className="flex gap-2 w-full">
         <div className="flex-grow w-1/2">
           <div className="flex flex-wrap gap-2 items-center text-4xl">
