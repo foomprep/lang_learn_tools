@@ -24,6 +24,7 @@ function App() {
   const [word, setWord] = useState<Word>({translation: '', text: ''});
   const [language, setLanguage] = useState<string>('');
   const [videoUrl, setVideoUrl] = useState<string>('');
+  const [playbackRate, setPlaybackRate] = useState<string>("Normal");
 
   const keyPress = async (event: any) => {
     if (event.key === 'n' || event.key === 'N') {
@@ -103,9 +104,25 @@ function App() {
     await handleNext(e);
   }
 
+  const handlePlayback = (e: any) => {
+    const video = document.getElementById('player');
+    console.log("Video loaded");
+    console.log("playbackRate property:", video!.playbackRate);
+    if (video!.playbackRate === 1.0) {
+      video!.playbackRate = 0.5;
+      setPlaybackRate("Slow");
+    } else {
+      video!.playbackRate = 1.0;
+      setPlaybackRate("Normal");
+    }
+  }
+
   return (
     <div className="h-screen w-screen p-4 flex flex-col gap-3 text-2xl items-center justify-center">
-      <video className="h-1/2" controls preload="auto" src={videoUrl} />
+      <div className="h-1/2 flex">
+        <video id="player" controls preload="auto" src={videoUrl} />
+        <button onClick={handlePlayback}>{playbackRate}</button>
+      </div>
       <div className="flex gap-3">
         <button onClick={handleNext}>Next</button>
         <button onClick={handleDelete}>Remove</button>
