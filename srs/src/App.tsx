@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { readDir, readFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { deleteSegment, getTranslation } from "./utils";
@@ -6,6 +6,7 @@ import { deleteSegment, getTranslation } from "./utils";
 interface SegmentJson {
   text: string;
   media_path: string;
+  language: string;
 }
 
 interface Word {
@@ -19,16 +20,18 @@ function App() {
   const [subtitle, setSubtitle] = useState<string>('');
   const [segments, setSegments] = useState<string[]>([]); // List of file names in SEGMENTS_DIR
   const [index, setIndex] = useState<number>(0);
-  const [videoUrl, setVideoUrl] = useState<string>('');
   const [translation, setTranslation] = useState<string>('');
   const [word, setWord] = useState<Word>({translation: '', text: ''});
+  const [language, setLanguage] = useState<string>('');
+  const [videoUrl, setVideoUrl] = useState<string>('');
 
   const loadVideo = async (path: string) => {
       try {
         const jsonFile = await readTextFile(path);
         const parsedJson: SegmentJson = JSON.parse(jsonFile);
         setSubtitle(parsedJson.text);
-        setTranslation(await getTranslation(parsedJson.text));
+        setLanguage(parsedJson.language);
+        setTranslation(await getTranslation(parsedJson.text, parsedJson.language));
 
         const videoFile = await readFile(parsedJson.media_path);
         // TODO get type from extension
@@ -43,7 +46,7 @@ function App() {
   }
 
   const handleClick = async (word: string) => {
-    const translation = await getTranslation(word);
+    const translation = await getTranslation(word, language);
     setWord({
       text: word,
       translation: translation,
@@ -80,6 +83,7 @@ function App() {
       </div>
       <div className="flex gap-2 w-full">
         <div className="flex-grow w-1/2">
+          <div>{language}</div>
           <div className="flex flex-wrap gap-2 items-center text-4xl">
             {subtitle.split(' ').map(word => {
               return <div onClick={() => handleClick(word)} className="cursor-pointer">{word}</div>

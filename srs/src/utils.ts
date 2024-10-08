@@ -1,6 +1,6 @@
 import { readTextFile, remove } from "@tauri-apps/plugin-fs";
 
-export const getTranslation = async (text: string) => {
+export const getTranslation = async (text: string, language: string) => {
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -10,7 +10,7 @@ export const getTranslation = async (text: string) => {
         },
         body: JSON.stringify({
           "model": "gpt-3.5-turbo",
-          "messages": [{"role": "user", "content": `Return a translation into English of French text: ${text}`}]
+          "messages": [{"role": "user", "content": `Return a translation into English of ${language} text: ${text}`}]
         })
       });
 
