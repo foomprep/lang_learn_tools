@@ -25,28 +25,31 @@ function App() {
   const [language, setLanguage] = useState<string>('');
   const [videoUrl, setVideoUrl] = useState<string>('');
 
-javascript
-document.addEventListener('keydown', function(event) {
+  const keyPress = async (event: any) => {
     if (event.key === 'n' || event.key === 'N') {
-        console.log("'n' key was pressed");
-        // Add your logic here
+        await handleNext(event);
     }
-});
+  }
+
+  useEffect(() => {
+    document.addEventListener('keydown', keyPress);
+    return () => document.removeEventListener("keydown", keyPress);
+  });
 
   const getSelectedText = () => {
-      if (typeof window.getSelection != "undefined") {
-        if (window.getSelection()) {
-          return window.getSelection()?.toString();
-        }
-      } 
-      return null;
+    if (typeof window.getSelection != "undefined") {
+      if (window.getSelection()) {
+        return window.getSelection()?.toString();
+      }
+    } 
+    return null;
   }
 
   function doSomethingWithSelectedText() {
-      var selectedText = getSelectedText();
-      if (selectedText) {
-        handleTranslation(selectedText);
-      }
+    var selectedText = getSelectedText();
+    if (selectedText) {
+      handleTranslation(selectedText);
+    }
   }
 
   document.onmouseup = doSomethingWithSelectedText;
