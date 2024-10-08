@@ -118,17 +118,17 @@ function App() {
   }
 
   return (
-    <div className="h-screen w-screen p-4 flex flex-col gap-3 text-2xl items-center justify-center">
-      <div className="h-1/2 flex">
-        <video id="player" controls preload="auto" src={videoUrl} />
-        <button onClick={handlePlayback}>{playbackRate}</button>
+    <div className="h-screen w-screen p-6 flex gap-3 text-2xl box-border">
+      <div className="flex flex-col gap-2 items-center justify-center w-1/2">
+        <video width="100%" id="player" controls preload="auto" src={videoUrl} />
+        <div className="flex gap-3">
+          <button type="button" onClick={handlePlayback} class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">{playbackRate}</button>
+          <button type="button" onClick={handleNext} class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Next</button>
+          <button type="button" onClick={handleDelete} class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Remove</button>
+        </div>
       </div>
-      <div className="flex gap-3">
-        <button onClick={handleNext}>Next</button>
-        <button onClick={handleDelete}>Remove</button>
-      </div>
-      <div className="flex gap-2 w-full">
-        <div className="flex-grow w-1/2">
+      <div className="flex flex-col gap-2 w-1/2 h-full">
+        <div className="h-1/2">
           <div>{language}</div>
           <div className="flex flex-wrap gap-2 items-center text-4xl">
             {subtitle.split(' ').map(word => {
@@ -137,7 +137,7 @@ function App() {
           </div>
           <div>{translation}</div>
         </div>
-        <div className="flex-grow w-1/2">
+        <div className="h-1/2">
           <div>{word.text}</div>
           <div>{word.translation}</div>
         </div>
