@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./App.css";
 import { readDir, readFile, readTextFile } from "@tauri-apps/plugin-fs";
-import { deleteSegment, getTranslation } from "./utils";
+import { deleteSegment, getTranslation, removePunc } from "./utils";
+import { useLongPress } from 'use-long-press';
 
 interface SegmentJson {
   text: string;
@@ -25,6 +26,24 @@ function App() {
   const [language, setLanguage] = useState<string>('');
   const [videoUrl, setVideoUrl] = useState<string>('');
 
+  const getSelectedText = () => {
+      if (typeof window.getSelection != "undefined") {
+        if (window.getSelection()) {
+          return window.getSelection()?.toString();
+        }
+      } 
+      return null;
+  }
+
+  function doSomethingWithSelectedText() {
+      var selectedText = getSelectedText();
+      if (selectedText) {
+        handleTranslation(selectedText);
+      }
+  }
+
+  document.onmouseup = doSomethingWithSelectedText;
+
   const loadVideo = async (path: string) => {
       try {
         const jsonFile = await readTextFile(path);
@@ -45,7 +64,7 @@ function App() {
       }
   }
 
-  const handleClick = async (word: string) => {
+  const handleTranslation = async (word: string) => {
     const translation = await getTranslation(word, language);
     setWord({
       text: word,
@@ -86,7 +105,7 @@ function App() {
           <div>{language}</div>
           <div className="flex flex-wrap gap-2 items-center text-4xl">
             {subtitle.split(' ').map(word => {
-              return <div onClick={() => handleClick(word)} className="cursor-pointer">{word}</div>
+              return <div onClick={() => handleTranslation(word)} className="cursor-pointer">{word}</div>
             })}
           </div>
           <div>{translation}</div>

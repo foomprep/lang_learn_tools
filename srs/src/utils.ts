@@ -50,3 +50,8 @@ export const deleteSegment = async (segmentPath: string): Promise<void> => {
     throw error;
   }
 }
+
+export const removePunc = (word: string) => {
+    return word.replace(/[!?¿".,]/g, '');
+}
+
