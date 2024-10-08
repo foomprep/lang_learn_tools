@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import { readDir, readFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { deleteSegment, getTranslation, removePunc } from "./utils";
-import { useLongPress } from 'use-long-press';
 
 interface SegmentJson {
   text: string;
@@ -25,6 +24,14 @@ function App() {
   const [word, setWord] = useState<Word>({translation: '', text: ''});
   const [language, setLanguage] = useState<string>('');
   const [videoUrl, setVideoUrl] = useState<string>('');
+
+javascript
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'n' || event.key === 'N') {
+        console.log("'n' key was pressed");
+        // Add your logic here
+    }
+});
 
   const getSelectedText = () => {
       if (typeof window.getSelection != "undefined") {
@@ -65,7 +72,7 @@ function App() {
   }
 
   const handleTranslation = async (word: string) => {
-    const translation = await getTranslation(word, language);
+    const translation = await getTranslation(removePunc(word), language);
     setWord({
       text: word,
       translation: translation,
