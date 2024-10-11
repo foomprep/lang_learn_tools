@@ -1,27 +1,31 @@
+import { TranslateClient, TranslateTextCommand } from "@aws-sdk/client-translate";
 import { readTextFile, remove } from "@tauri-apps/plugin-fs";
 
-export const getTranslation = async (text: string, language: string) => {
+export const getTranslation = async (
+  client: TranslateClient, 
+  text: string, 
+  sourceLanguage: string, 
+  targetLanguage: string
+) => {
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          "model": "gpt-3.5-turbo",
-          "messages": [{"role": "user", "content": `Return a translation into English of ${language} text: ${text}`}]
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Response status: ${response.status}`);
+      const input = {
+        Text: text,
+        SourceLanguageCode: sourceLanguage,
+        TargetLanguageCode: targetLanguage,
+      };
+    
+      const command = new TranslateTextCommand(input);
+    
+      try {
+        const response = await client.send(command);
+        console.log(response);
+        return response.TranslatedText;
+      } catch (error) {
+        console.error("Error translating text:", error);
+        throw error;
       }
-
-      const responseJson = await response.json();
-      return responseJson.choices[0].message.content;
-    } catch (error: any) {
-      console.error(error.message);
+    } catch (error) {
+      console.error(error);
     }
 }
 
