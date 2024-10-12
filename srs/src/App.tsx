@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import { readDir, readFile, readTextFile } from "@tauri-apps/plugin-fs";
-import { deleteSegment, getTranslation, removePunc } from "./utils";
+import { deleteSegment, getSpeechFromText, getTranslation, removePunc } from "./utils";
 import { TranslateClient } from "@aws-sdk/client-translate";
+import { PollyClient } from "@aws-sdk/client-polly";
 
 interface SegmentJson {
   text: string;
@@ -13,6 +14,7 @@ interface SegmentJson {
 interface Word {
   translation: string;
   text: string;
+  audioUrl: string;
 }
 
 const credentials = {
@@ -20,8 +22,13 @@ const credentials = {
   secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
 };
 
-const client = new TranslateClient({
+const translateClient = new TranslateClient({
   region: "us-east-1",
+  credentials: credentials,
+});
+
+const pollyClient = new PollyClient({
+  region: 'us-east-1',
   credentials: credentials,
 });
 
@@ -32,7 +39,7 @@ function App() {
   const [segments, setSegments] = useState<string[]>([]); // List of file names in SEGMENTS_DIR
   const [index, setIndex] = useState<number>(0);
   const [translation, setTranslation] = useState<string>('');
-  const [word, setWord] = useState<Word>({translation: '', text: ''});
+  const [word, setWord] = useState<Word>({translation: '', text: '', audioUrl: ''});
   const [language, setLanguage] = useState<string>('');
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [playbackRate, setPlaybackRate] = useState<string>("Normal");
@@ -73,7 +80,7 @@ function App() {
       setSubtitle(parsedJson.text);
       setLanguage(parsedJson.language);
       const result = await getTranslation(
-        client,
+        translateClient,
         parsedJson.text, 
         parsedJson.language,
         'en',
@@ -94,15 +101,23 @@ function App() {
 
   const handleTranslation = async (word: string) => {
     const translation = await getTranslation(
-      client,
+      translateClient,
       removePunc(word),
       language,
       'en',
     );
-    console.log(translation);
-    setWord({
+ 
+     const speech = await getSpeechFromText(
+  setWord({      pollyClient Blob([speech]));
+,
+      word,
+      language,
+    );
+
+    const speechUrl = URL.createObjectURL(new
       text: word,
       translation: translation ? translation : 'Word could not be translated.',
+      audioUrl: 
     });
   }
 
