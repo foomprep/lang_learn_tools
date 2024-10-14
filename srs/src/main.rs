@@ -1,6 +1,6 @@
 use gtk::gdk::Display;
-use gtk::{prelude::*, CssProvider, TextBuffer};
-use gtk::{Application, ApplicationWindow, TextView, Video, Box as GtkBox, Orientation};
+use gtk::predule::*;
+use gtk::{Application, ApplicationWindow, TextView, Video, Box as GtkBox, Orientation, CssProvider, TextBuffer};
 use gio::File;
 use serde_json::Value;
 use std::fs;
@@ -27,6 +27,27 @@ fn load_css() {
 }
 
 fn build_ui(app: &Application) {
+rust
+use std::fs;
+use std::path::PathBuf;
+
+fn main() {
+    let dir_path = dirs::home_dir().unwrap().join(".flashcard/segments");
+    if dir_path.exists() && dir_path.is_dir() {
+        let entries = fs::read_dir(dir_path).unwrap();
+        for entry in entries {
+            let entry = entry.unwrap();
+            let path: PathBuf = entry.path();
+            if path.is_file() {
+                let content = fs::read_to_string(&path).unwrap();
+                println!("File: {:?} contains:\n{}", path, content);
+            }
+        }
+    } else {
+        println!("Directory does not exist");
+    }
+}
+
     let file_path = "../../.flashcard/media/The.Black.Tulip.1964.REPACK.720p.BluRay.x264.AAC-[YTS.MX]_2258.02.mp4";
     let video = Video::new();
     
