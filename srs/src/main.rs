@@ -1,5 +1,6 @@
-use gtk::{prelude::*, TextBuffer};
-use gtk::{Application, ApplicationWindow, TextView, Video, Button, Box as GtkBox, Orientation};
+use gtk::gdk::Display;
+use gtk::{prelude::*, CssProvider, TextBuffer};
+use gtk::{Application, ApplicationWindow, TextView, Video, Box as GtkBox, Orientation};
 use gio::File;
 use serde_json::Value;
 use std::fs;
@@ -9,8 +10,20 @@ fn main() {
         .application_id("com.tongues.srs")
         .build();
 
+    app.connect_startup(|_| load_css());
     app.connect_activate(build_ui);
     app.run();
+}
+
+fn load_css() {
+    let provider = CssProvider::new();
+    provider.load_from_string(include_str!("style.css"));
+
+    gtk::style_context_add_provider_for_display(
+        &Display::default().expect("Could not connect to a display."),
+        &provider,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
 }
 
 fn build_ui(app: &Application) {
@@ -29,9 +42,8 @@ fn build_ui(app: &Application) {
     let segment_json: Value = serde_json::from_str(&file_content).expect("Failed to parse JSON");
     let subtitles_buffer = TextBuffer::new(None);
     subtitles_buffer.set_text(segment_json["text"].as_str().unwrap_or_default());
-rust
-    let mut subtitles_view = TextView::with_buffer(&subtitles_buffer);
-    subtitles_view.set_font_size(20); // assuming there's a method like this
+    let subtitles_view = TextView::with_buffer(&subtitles_buffer);
+    subtitles_view.add_css_class("text-xl");
 
     let main_box = GtkBox::new(Orientation::Vertical, 5);
     main_box.append(&video);
