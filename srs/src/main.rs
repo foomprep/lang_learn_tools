@@ -68,6 +68,12 @@ fn build_ui(app: &Application) {
     video.set_file(Some(&file));
     video.set_autoplay(true);
 
+
+let words = &values_vec[segment_index.get()].text.split(' ');
+for word in words {
+    println!("{}", word);
+}
+
     let subtitles_buffer = TextBuffer::new(None);
     subtitles_buffer.set_text(&values_vec[segment_index.get()].text);
     let subtitles_view = TextView::with_buffer(&subtitles_buffer);
