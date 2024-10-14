@@ -1,4 +1,4 @@
-use gtk::prelude::*;
+use gtk::{prelude::*, TextBuffer};
 use gtk::{Application, ApplicationWindow, TextView, Video, Button, Box as GtkBox, Orientation};
 use gio::File;
 use serde_json::Value;
@@ -26,12 +26,16 @@ fn build_ui(app: &Application) {
     let file_content = fs::read_to_string(subtitle_path)
         .expect("Failed to read the file");
 
+    let segment_json: Value = serde_json::from_str(&file_content).expect("Failed to parse JSON");
+    let subtitles_buffer = TextBuffer::new(None);
+    subtitles_buffer.set_text(segment_json["text"].as_str().unwrap_or_default());
 rust
-let segment_json: Value = serde_json::from_str(&file_content).expect("Failed to parse JSON");
-let subtitles_view = TextView::new(segment_json["text"].as_str().unwrap_or_default());
+    let mut subtitles_view = TextView::with_buffer(&subtitles_buffer);
+    subtitles_view.set_font_size(20); // assuming there's a method like this
 
     let main_box = GtkBox::new(Orientation::Vertical, 5);
     main_box.append(&video);
+    main_box.append(&subtitles_view);
 
     let window = ApplicationWindow::builder()
         .application(app)
