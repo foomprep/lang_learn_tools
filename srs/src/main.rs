@@ -1,6 +1,8 @@
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Video, Button, Box as GtkBox, Orientation};
+use gtk::{Application, ApplicationWindow, TextView, Video, Button, Box as GtkBox, Orientation};
 use gio::File;
+use serde_json::Value;
+use std::fs;
 
 fn main() {
     let app = Application::builder()
@@ -19,24 +21,14 @@ fn build_ui(app: &Application) {
     video.set_file(Some(&file));
     video.set_autoplay(true);
 
- rust
-   use serde_json::Value;
-use std::fs;
-
-fn main() {
     let subtitle_path = "../../.flashcard/segments/The.Black.Tulip.1964.REPACK.720p.BluRay.x264.AAC-[YTS.MX]_2258.02.json";
     
-    // Read the file
     let file_content = fs::read_to_string(subtitle_path)
         .expect("Failed to read the file");
 
-    // Parse JSON
-    let json: Value = serde_json::from_str(&file_content)
-        .expect    println!("{:?("Failed to parse JSON");
-     json);
-    }",  }
-
-
+rust
+let segment_json: Value = serde_json::from_str(&file_content).expect("Failed to parse JSON");
+let subtitles_view = TextView::new(segment_json["text"].as_str().unwrap_or_default());
 
     let main_box = GtkBox::new(Orientation::Vertical, 5);
     main_box.append(&video);
