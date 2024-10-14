@@ -1,5 +1,6 @@
 use gtk::gdk::Display;
 use gtk::predule::*;
+use gtk::traits::{TextBufferExt, WidgetExt};
 use gtk::{Application, ApplicationWindow, TextView, Video, Box as GtkBox, Orientation, CssProvider, TextBuffer};
 use gio::File;
 use serde_json::Value;
@@ -28,11 +29,11 @@ fn load_css() {
 }
 
 fn build_ui(app: &Application) {
-rust
     let dir_path = dirs::home_dir().unwrap().join(".flashcard/segments");
     if dir_path.exists() && dir_path.is_dir() {
-        let mut entries_vec = vec![];
-        let entries = fs::read_dir(dir_path).unwrap();
+ 
+         let mut entries_vec: Vec<&str> = vec![];
+      let entries = fs::read_dir(dir_path).unwrap();
         for entry in entries {
             let entry = entry.unwrap();
             let path: PathBuf = entry.path();
