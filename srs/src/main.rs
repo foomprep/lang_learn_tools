@@ -1,11 +1,21 @@
+use glib::clone;
 use gtk::gdk::Display;
-use gtk::predule::*;
-use gtk::traits::{TextBufferExt, WidgetExt};
+use gtk::{prelude::*, Button};
 use gtk::{Application, ApplicationWindow, TextView, Video, Box as GtkBox, Orientation, CssProvider, TextBuffer};
 use gio::File;
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
+use std::cell::Cell;
 use std::fs;
 use std::path::PathBuf;
+use rand::thread_rng;
+use rand::seq::SliceRandom;
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Segment {
+    text: String,
+    media_path: String,
+    language: String,
+}
 
 fn main() {
     let app = Application::builder()
@@ -29,10 +39,10 @@ fn load_css() {
 }
 
 fn build_ui(app: &Application) {
+    let segment_index = Cell::<usize>::new(0);
     let dir_path = dirs::home_dir().unwrap().join(".flashcard/segments");
+    let mut entries_vec = vec![];
     if dir_path.exists() && dir_path.is_dir() {
- 
-         let mut entries_vec: Vec<&str> = vec![];
       let entries = fs::read_dir(dir_path).unwrap();
         for entry in entries {
             let entry = entry.unwrap();
@@ -41,36 +51,48 @@ fn build_ui(app: &Application) {
                 entries_vec.push(path);
             }
         }
-        entries_vec.shuffle(&mut rand::thread_rng());
-        for path in entries_vec {
-            let content = fs::read_to_string(&path).unwrap();
-            println!("File: {:?} contains:\n{}", path, content);
-        }
+        entries_vec.shuffle(&mut thread_rng());
     } else {
         println!("Directory does not exist");
     }
 
-    let file_path = "../../.flashcard/media/The.Black.Tulip.1964.REPACK.720p.BluRay.x264.AAC-[YTS.MX]_2258.02.mp4";
+    let mut values_vec = vec![];
+    for path in entries_vec {
+        let content = fs::read_to_string(&path).unwrap();
+        let segment_json: Segment = serde_json::from_str(&content).expect("Failed to parse JSON");
+        values_vec.push(segment_json);
+    }
+
     let video = Video::new();
-    
-    let file = File::for_path(file_path);
+    let file = File::for_path(&values_vec[segment_index.get()].media_path);
     video.set_file(Some(&file));
     video.set_autoplay(true);
 
-    let subtitle_path = "../../.flashcard/segments/The.Black.Tulip.1964.REPACK.720p.BluRay.x264.AAC-[YTS.MX]_2258.02.json";
-    
-    let file_content = fs::read_to_string(subtitle_path)
-        .expect("Failed to read the file");
-
-    let segment_json: Value = serde_json::from_str(&file_content).expect("Failed to parse JSON");
     let subtitles_buffer = TextBuffer::new(None);
-    subtitles_buffer.set_text(segment_json["text"].as_str().unwrap_or_default());
+    subtitles_buffer.set_text(&values_vec[segment_index.get()].text);
     let subtitles_view = TextView::with_buffer(&subtitles_buffer);
     subtitles_view.add_css_class("text-xl");
+
+    let next_button = Button::with_label("Next");
+    next_button.connect_clicked(clone!(
+        #[strong]
+        subtitles_view,
+        #[strong]
+        video,
+        move |_| {
+            segment_index.set(segment_index.get()+1);
+            let buffer = TextBuffer::new(None);
+            buffer.set_text(&values_vec[segment_index.get()].text);
+            subtitles_view.set_buffer(Some(&buffer));
+            let file = File::for_path(&values_vec[segment_index.get()].media_path);
+            video.set_file(Some(&file));
+        }
+    ));
 
     let main_box = GtkBox::new(Orientation::Vertical, 5);
     main_box.append(&video);
     main_box.append(&subtitles_view);
+    main_box.append(&next_button);
 
     let window = ApplicationWindow::builder()
         .application(app)
