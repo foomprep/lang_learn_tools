@@ -69,10 +69,11 @@ fn build_ui(app: &Application) {
     video.set_autoplay(true);
 
 
-let words = &values_vec[segment_index.get()].text.split(' ');
-for word in words {
-    println!("{}", word);
-}
+rust
+    let words = values_vec[segment_index.get()].text.split(' ');
+    for word in words {
+        println!("{}", word);
+    }
 
     let subtitles_buffer = TextBuffer::new(None);
     subtitles_buffer.set_text(&values_vec[segment_index.get()].text);
