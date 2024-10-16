@@ -1,11 +1,12 @@
 use anthropic::client::ClientBuilder;
 use anthropic::types::{ContentBlock, Message, MessagesRequestBuilder, Role};
 use gtk::gdk::Display;
-use gtk::prelude::*;
+use gtk::{prelude::*, Text};
 use gtk::{Application, ApplicationWindow, Video, Box as GtkBox, Orientation, CssProvider, Label};
 use gio::File;
 use serde::{Deserialize, Serialize};
 use std::cell::Cell;
+use std::fmt::Error;
 use std::fs;
 use std::env;
 use std::path::PathBuf;
@@ -23,7 +24,7 @@ async fn get_translation(
     text: &str, 
     source_language: &str,
     target_language: &str,
-) -> String {
+) -> Result<String, Box<dyn std::error::Error>> {
     let api_key = match env::var("ANTHROPIC_API_KEY") {
         Ok(api_key) => api_key,
         Err(_) => panic!("ANTHROPIC_API_KEY not set."),
@@ -31,20 +32,29 @@ async fn get_translation(
 
     let client = ClientBuilder::default().api_key(api_key).build()?;
 
+    let translation_prompt = format!("You are a translator.  You will be given a Source language
+and Target language and Text.  Return ONLY the translation of Source language into Target language.
+
+Source language: {}
+Target language: {}
+Text: {}
+
+", source_language, target_language, text);
+
     let message = Message { 
         role: Role::User, 
-        content: vec![ContentBlock::Text { text: "hello".to_string() }]
+        content: vec![ContentBlock::Text { text: translation_prompt }]
     };
     let request = MessagesRequestBuilder::default()
         .model("claude-3-haiku-20240307".to_string())
         .max_tokens::<u16>(400)
         .stream(false)  
         .messages(vec![message])
-        .build().unwrap();
+        .build()?;
 
     let response = client.messages(request).await.unwrap();
     match response.content.get(0).unwrap() {
-        ContentBlock::Text { text } => text.to_string(),
+        ContentBlock::Text { text } => Ok(text.to_string()),
         _ => panic!("Not text.")
     }
 }
@@ -106,7 +116,10 @@ fn build_ui(app: &Application) {
     word_box.add_css_class("text-xl");
     let words = values_vec[segment_index.get()].text.split(' ');
     for word in words {
-        let word_label = Label::new(Some(word));
+
+        let word_label = Text::builder().with_text("hello").build();
+
+        word_label.connect_clicked
         word_box.append(&word_label);
     }
 
