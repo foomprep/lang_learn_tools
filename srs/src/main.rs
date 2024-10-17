@@ -36,8 +36,10 @@ fn build_ui(app: &Application) {
     // Basic scaffold
     let main_box = GtkBox::new(Orientation::Horizontal, 5);
     let left_box = GtkBox::new(Orientation::Vertical, 5);
+    left_box.add_css_class("h-3/4");
     left_box.add_css_class("text-xl");
     let right_box = GtkBox::new(Orientation::Vertical, 5);
+    right_box.add_css_class("h-1/4");
     main_box.append(&left_box);
     main_box.append(&right_box);
 
