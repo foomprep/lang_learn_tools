@@ -1,9 +1,10 @@
+mod translation;
+
 use gtk::gdk::Display;
-use gtk::{prelude::*, GestureClick, Text};
-use gtk::{Application, ApplicationWindow, Video, Box as GtkBox, Orientation, CssProvider, Label};
+use gtk::{prelude::*, FlowBox, GestureClick, Text};
+use gtk::{Application, ApplicationWindow, Video, Box as GtkBox, Orientation, CssProvider};
 use gio::File;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 use std::cell::Cell;
 use std::sync::mpsc;
 use std::time::Duration;
@@ -11,67 +12,13 @@ use std::{fs, thread};
 use std::path::PathBuf;
 use rand::thread_rng;
 use rand::seq::SliceRandom;
+use translation::get_translation;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Segment {
     text: String,
     media_path: String,
     language: String,
-}
-
-fn get_translation(
-    text: &str, 
-    source_language: &str, 
-    target_language: &str
-) -> Result<String, anyhow::Error> {
-    // TODO move to parameters
-    let client = reqwest::blocking::Client::new();
-    let api_key = std::env::var("ANTHROPIC_API_KEY").expect("Environment variable ANTHROPIC_API_KEY is not set");
-  
-    let prompt = format!(
-        "Translate the following text from source language to target language. 
-        Only provide the translation, no explanations:
-
-        Source language: {}
-        Target language: {}
-        Text: {} 
-        ",
-        source_language, target_language, text
-    );
-    let response = client
-        .post("https://api.anthropic.com/v1/messages")
-        .header("x-api-key", api_key)
-        .header("anthropic-version", "2023-06-01")
-        .header("content-type", "application/json")
-        .json(&json!({
-            "model": "claude-3-haiku-20240307",
-            "max_tokens": 1024,
-            "messages": [{
-                "role": "user",
-                "content": prompt
-            }]
-        }))
-        .send()?;
-
-    let response_text: Value = serde_json::from_str(&response.text()?)?;
-    let translation = match response_text["content"][0]["text"].as_str() {
-        Some(translation) => translation,
-        None => panic!("Could not get translation from response."),
-    };
-
-    Ok(translation.to_string())
-}
-
-fn main() {
-    let app = Application::builder()
-        .application_id("com.tongues.srs")
-        .build();
-
-    app.connect_startup(|_| load_css());
-    app.connect_activate(move |app| {
-        build_ui(app);
-    });
-    app.run();
 }
 
 fn load_css() {
@@ -89,6 +36,7 @@ fn build_ui(app: &Application) {
     // Basic scaffold
     let main_box = GtkBox::new(Orientation::Horizontal, 5);
     let left_box = GtkBox::new(Orientation::Vertical, 5);
+    left_box.add_css_class("text-xl");
     let right_box = GtkBox::new(Orientation::Vertical, 5);
     main_box.append(&left_box);
     main_box.append(&right_box);
@@ -125,8 +73,10 @@ fn build_ui(app: &Application) {
 
     let (tx, rx) = mpsc::channel();
 
-    let word_box = GtkBox::new(Orientation::Horizontal, 10);
-    word_box.add_css_class("text-xl");
+    let word_box = FlowBox::new();
+    word_box.set_vexpand(true);
+    word_box.set_hexpand(true);
+    word_box.add_css_class("word");
     let subtitles = values_vec[segment_index.get()].text.to_string();
     let language = values_vec[segment_index.get()].language.to_string();
     let words = subtitles.split(' ');
@@ -169,7 +119,6 @@ fn build_ui(app: &Application) {
                     .editable(false)
                     .build();
                 right_box.append(&current_word); 
-                println!("translation: {}", translation);
             },
             Err(_) => {},
         };
@@ -206,4 +155,16 @@ fn build_ui(app: &Application) {
         .build();
 
     window.present();
+}
+
+fn main() {
+    let app = Application::builder()
+        .application_id("com.tongues.srs")
+        .build();
+
+    app.connect_startup(|_| load_css());
+    app.connect_activate(move |app| {
+        build_ui(app);
+    });
+    app.run();
 }
