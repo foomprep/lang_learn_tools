@@ -5,6 +5,8 @@ use gio::File;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::cell::Cell;
+use std::sync::mpsc;
+use std::time::Duration;
 use std::{fs, thread};
 use std::path::PathBuf;
 use rand::thread_rng;
@@ -17,7 +19,11 @@ struct Segment {
     language: String,
 }
 
-fn get_translation(text: &str, source_language: &str, target_language: &str) -> Result<String, anyhow::Error> {
+fn get_translation(
+    text: &str, 
+    source_language: &str, 
+    target_language: &str
+) -> Result<String, anyhow::Error> {
     // TODO move to parameters
     let client = reqwest::blocking::Client::new();
     let api_key = std::env::var("ANTHROPIC_API_KEY").expect("Environment variable ANTHROPIC_API_KEY is not set");
@@ -47,7 +53,6 @@ fn get_translation(text: &str, source_language: &str, target_language: &str) -> 
         }))
         .send()?;
 
-    println!("{:?}", response);
     let response_text: Value = serde_json::from_str(&response.text()?)?;
     let translation = match response_text["content"][0]["text"].as_str() {
         Some(translation) => translation,
@@ -81,6 +86,13 @@ fn load_css() {
 }
 
 fn build_ui(app: &Application) {
+    // Basic scaffold
+    let main_box = GtkBox::new(Orientation::Horizontal, 5);
+    let left_box = GtkBox::new(Orientation::Vertical, 5);
+    let right_box = GtkBox::new(Orientation::Vertical, 5);
+    main_box.append(&left_box);
+    main_box.append(&right_box);
+
     let segment_index = Cell::<usize>::new(0);
     let dir_path = dirs::home_dir().unwrap().join(".flashcard/segments");
     let mut entries_vec = vec![];
@@ -109,10 +121,14 @@ fn build_ui(app: &Application) {
     let file = File::for_path(&values_vec[segment_index.get()].media_path);
     video.set_file(Some(&file));
     video.set_autoplay(true);
+    left_box.append(&video);
+
+    let (tx, rx) = mpsc::channel();
 
     let word_box = GtkBox::new(Orientation::Horizontal, 10);
     word_box.add_css_class("text-xl");
     let subtitles = values_vec[segment_index.get()].text.to_string();
+    let language = values_vec[segment_index.get()].language.to_string();
     let words = subtitles.split(' ');
     for word in words {
         let word = word.to_string();
@@ -121,21 +137,44 @@ fn build_ui(app: &Application) {
             .editable(false)
             .build();
         let click_controller = GestureClick::new();
+        let tx_clone = tx.clone();
+        let language_clone = language.clone();
         click_controller.connect_pressed(move |_gesture, _n_press, _x, _y| {
+            let tx_second_clone = tx_clone.clone();
             let word = word.clone();
+            let language_second_clone = language_clone.clone();
             thread::spawn(move || {
                 let word = word.clone();
                 let translation = get_translation(
                     &word,
-                    "Spanish",
+                    &language_second_clone,
                     "English",
                 ).unwrap();
-                println!("{}", translation);
+                let _ = tx_second_clone.send(translation);
             });
         });
         word_text.add_controller(click_controller);
         word_box.append(&word_text);
     }
+    left_box.append(&word_box);
+
+    glib::timeout_add_local(Duration::from_millis(100), move || {
+        match rx.try_recv() {
+            Ok(translation) => {
+                while let Some(child) = right_box.last_child() {
+                    right_box.remove(&child);
+                }
+                let current_word = Text::builder()
+                    .text(&translation)
+                    .editable(false)
+                    .build();
+                right_box.append(&current_word); 
+                println!("translation: {}", translation);
+            },
+            Err(_) => {},
+        };
+        glib::ControlFlow::Continue
+    });
 
     // let next_button = Button::with_label("Next");
     // next_button.connect_clicked(clone!(
@@ -157,10 +196,6 @@ fn build_ui(app: &Application) {
     //     }
     // ));
 
-    let main_box = GtkBox::new(Orientation::Vertical, 5);
-    main_box.append(&video);
-    main_box.append(&word_box);
-    // main_box.append(&next_button);
 
     let window = ApplicationWindow::builder()
         .application(app)
