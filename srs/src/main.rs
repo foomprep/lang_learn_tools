@@ -44,7 +44,8 @@ fn get_translation(text: &str, source_language: &str, target_language: &str) -> 
 
     // Extract the translation from the response
 rust
-    let response_text: serde_json::Value = serde_json::from_str(&response.text()?)?;
+    let response_text: Value = serde_json::from_str(&response.text()?)?;
+    let first_content_item = response_text["content"][0].as_str();
 
     let translation = response_text["content"][0]["text"]
         .as_str()
