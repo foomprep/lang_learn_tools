@@ -1,7 +1,7 @@
 mod translation;
 
 use gtk::gdk::Display;
-use gtk::{prelude::*, FlowBox, GestureClick, Text};
+use gtk::{prelude::*, Button, FlowBox, GestureClick, Text};
 use gtk::{Application, ApplicationWindow, Video, Box as GtkBox, Orientation, CssProvider};
 use gio::File;
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,7 @@ use std::path::PathBuf;
 use rand::thread_rng;
 use rand::seq::SliceRandom;
 use translation::get_translation;
+use glib::clone;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Segment {
@@ -40,6 +41,8 @@ fn build_ui(app: &Application) {
     left_box.add_css_class("text-xl");
     let right_box = GtkBox::new(Orientation::Vertical, 5);
     right_box.add_css_class("h-1/4");
+    let translation_box = GtkBox::new(Orientation::Vertical, 5);
+    right_box.append(&translation_box);
     main_box.append(&left_box);
     main_box.append(&right_box);
 
@@ -110,43 +113,75 @@ fn build_ui(app: &Application) {
     }
     left_box.append(&word_box);
 
+    let translation_box_clone = translation_box.clone();
     glib::timeout_add_local(Duration::from_millis(100), move || {
         match rx.try_recv() {
             Ok(translation) => {
-                while let Some(child) = right_box.last_child() {
-                    right_box.remove(&child);
+                while let Some(child) = translation_box_clone.last_child() {
+                    translation_box_clone.remove(&child);
                 }
                 let current_word = Text::builder()
                     .text(&translation)
                     .editable(false)
                     .build();
-                right_box.append(&current_word); 
+                translation_box_clone.append(&current_word); 
             },
             Err(_) => {},
         };
         glib::ControlFlow::Continue
     });
 
-    // let next_button = Button::with_label("Next");
-    // next_button.connect_clicked(clone!(
-    //     #[strong]
-    //     word_box,
-    //     #[strong]
-    //     video,
-    //     move |_| {
-    //         segment_index.set(segment_index.get()+1);
+    let next_button = Button::with_label("Next");
+    next_button.connect_clicked(clone!(
+        #[strong]
+        word_box,
+        #[strong]
+        left_box,
+        move |_| {
+            while let Some(child) = word_box.last_child() {
+                word_box.remove(&child);
+            }
+            while let Some(child) = left_box.last_child() {
+                left_box.remove(&child);
+            }
+            segment_index.set(segment_index.get()+1);
+            let video = Video::new();
+            let file = File::for_path(&values_vec[segment_index.get()].media_path);
+            video.set_file(Some(&file));
+            video.set_autoplay(true);
+            left_box.append(&video);
 
-    //         let words = values_vec[segment_index.get()].text.split(' ');
-    //         for word in words {
-    //             let buffer = TextBuffer::builder().text(word).build();
-    //             let text_view = TextView::builder().buffer(&buffer).editable(false).build();
-    //             word_box.append(&text_view);
-    //         }
-    //         let file = File::for_path(&values_vec[segment_index.get()].media_path);
-    //         video.set_file(Some(&file));
-    //     }
-    // ));
-
+            let words = values_vec[segment_index.get()].text.split(' ');
+            for word in words {
+                let word = word.to_string();
+                let word_text = Text::builder()
+                    .text(&word)
+                    .editable(false)
+                    .build();
+                let click_controller = GestureClick::new();
+                let tx_clone = tx.clone();
+                let language_clone = language.clone();
+                click_controller.connect_pressed(move |_gesture, _n_press, _x, _y| {
+                    let tx_second_clone = tx_clone.clone();
+                    let word = word.clone();
+                    let language_second_clone = language_clone.clone();
+                    thread::spawn(move || {
+                        let word = word.clone();
+                        let translation = get_translation(
+                            &word,
+                            &language_second_clone,
+                            "English",
+                        ).unwrap();
+                        let _ = tx_second_clone.send(translation);
+                    });
+                });
+                word_text.add_controller(click_controller);
+                word_box.append(&word_text);
+            }
+            left_box.append(&word_box);
+        }
+    ));
+    right_box.append(&next_button);
 
     let window = ApplicationWindow::builder()
         .application(app)
