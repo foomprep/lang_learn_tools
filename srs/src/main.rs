@@ -22,9 +22,7 @@ struct Segment {
 fn get_translation(text: &str, source_language: &str, target_language: &str) -> Result<String, anyhow::Error> {
     // TODO move to parameters
     let client = reqwest::blocking::Client::new();
-    
- 
-     let api_key = std::env::var("ANTHROPIC_API_KEY").expect("Environment variable ANTHROPIC_API_KEY is not set");
+    let api_key = std::env::var("ANTHROPIC_API_KEY").expect("Environment variable ANTHROPIC_API_KEY is not set");
   
     let response = client
         .post("https://api.anthropic.com/v1/messages")
@@ -44,10 +42,11 @@ fn get_translation(text: &str, source_language: &str, target_language: &str) -> 
         }))
         .send()?;
 
-    let response_body: Value = response.json().await?;
-    
     // Extract the translation from the response
-    let translation = response_body["content"][0]["text"]
+rust
+    let response_text: serde_json::Value = serde_json::from_str(&response.text()?)?;
+
+    let translation = response_text["content"][0]["text"]
         .as_str()
         .ok_or_else(|| anyhow::anyhow!("Failed to extract translation from response"))?
         .to_string();
