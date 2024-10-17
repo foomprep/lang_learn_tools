@@ -5,10 +5,8 @@ use gio::File;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::cell::Cell;
-use std::fs;
-use std::env;
+use std::{fs, thread};
 use std::path::PathBuf;
-use reqwest::blocking::Client;
 use rand::thread_rng;
 use rand::seq::SliceRandom;
 
@@ -24,35 +22,39 @@ fn get_translation(text: &str, source_language: &str, target_language: &str) -> 
     let client = reqwest::blocking::Client::new();
     let api_key = std::env::var("ANTHROPIC_API_KEY").expect("Environment variable ANTHROPIC_API_KEY is not set");
   
+    let prompt = format!(
+        "Translate the following text from source language to target language. 
+        Only provide the translation, no explanations:
+
+        Source language: {}
+        Target language: {}
+        Text: {} 
+        ",
+        source_language, target_language, text
+    );
     let response = client
         .post("https://api.anthropic.com/v1/messages")
         .header("x-api-key", api_key)
-        .header("anthropic-version", "2024-01-01")
+        .header("anthropic-version", "2023-06-01")
         .header("content-type", "application/json")
         .json(&json!({
-            "model": "claude-3-opus-20240229",
+            "model": "claude-3-haiku-20240307",
             "max_tokens": 1024,
             "messages": [{
                 "role": "user",
-                "content": format!(
-                    "Translate the following text from {} to {}. Only provide the translation, no explanations:\n\n{}",
-                    source_language, target_language, text
-                )
+                "content": prompt
             }]
         }))
         .send()?;
 
-    // Extract the translation from the response
-rust
+    println!("{:?}", response);
     let response_text: Value = serde_json::from_str(&response.text()?)?;
-    let first_content_item = response_text["content"][0].as_str();
+    let translation = match response_text["content"][0]["text"].as_str() {
+        Some(translation) => translation,
+        None => panic!("Could not get translation from response."),
+    };
 
-    let translation = response_text["content"][0]["text"]
-        .as_str()
-        .ok_or_else(|| anyhow::anyhow!("Failed to extract translation from response"))?
-        .to_string();
-
-    Ok(translation)
+    Ok(translation.to_string())
 }
 
 fn main() {
@@ -115,22 +117,21 @@ fn build_ui(app: &Application) {
     for word in words {
         let word = word.to_string();
         let word_text = Text::builder()
-            .text("hello")
+            .text(&word)
             .editable(false)
             .build();
         let click_controller = GestureClick::new();
         click_controller.connect_pressed(move |_gesture, _n_press, _x, _y| {
             let word = word.clone();
-            glib::spawn_future_local(async move {
-                    let word = word.clone();
-                    let translation = get_translation(
-                        &word,
-                        "English",
-                        "Spanish",
-                    ).await.unwrap();
-                    println!("{}", translation);
-                }
-            );
+            thread::spawn(move || {
+                let word = word.clone();
+                let translation = get_translation(
+                    &word,
+                    "Spanish",
+                    "English",
+                ).unwrap();
+                println!("{}", translation);
+            });
         });
         word_text.add_controller(click_controller);
         word_box.append(&word_text);
