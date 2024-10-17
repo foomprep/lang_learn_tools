@@ -1,15 +1,14 @@
-use anthropic::client::ClientBuilder;
-use anthropic::types::{ContentBlock, Message, MessagesRequestBuilder, Role};
 use gtk::gdk::Display;
-use gtk::{prelude::*, Text};
+use gtk::{prelude::*, GestureClick, Text};
 use gtk::{Application, ApplicationWindow, Video, Box as GtkBox, Orientation, CssProvider, Label};
 use gio::File;
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use std::cell::Cell;
-use std::fmt::Error;
 use std::fs;
 use std::env;
 use std::path::PathBuf;
+use reqwest::blocking::Client;
 use rand::thread_rng;
 use rand::seq::SliceRandom;
 
@@ -20,43 +19,40 @@ struct Segment {
     language: String,
 }
 
-async fn get_translation(
-    text: &str, 
-    source_language: &str,
-    target_language: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let api_key = match env::var("ANTHROPIC_API_KEY") {
-        Ok(api_key) => api_key,
-        Err(_) => panic!("ANTHROPIC_API_KEY not set."),
-    };
+fn get_translation(text: &str, source_language: &str, target_language: &str) -> Result<String, anyhow::Error> {
+    // TODO move to parameters
+    let client = reqwest::blocking::Client::new();
+    
+ 
+     let api_key = std::env::var("ANTHROPIC_API_KEY").expect("Environment variable ANTHROPIC_API_KEY is not set");
+  
+    let response = client
+        .post("https://api.anthropic.com/v1/messages")
+        .header("x-api-key", api_key)
+        .header("anthropic-version", "2024-01-01")
+        .header("content-type", "application/json")
+        .json(&json!({
+            "model": "claude-3-opus-20240229",
+            "max_tokens": 1024,
+            "messages": [{
+                "role": "user",
+                "content": format!(
+                    "Translate the following text from {} to {}. Only provide the translation, no explanations:\n\n{}",
+                    source_language, target_language, text
+                )
+            }]
+        }))
+        .send()?;
 
-    let client = ClientBuilder::default().api_key(api_key).build()?;
+    let response_body: Value = response.json().await?;
+    
+    // Extract the translation from the response
+    let translation = response_body["content"][0]["text"]
+        .as_str()
+        .ok_or_else(|| anyhow::anyhow!("Failed to extract translation from response"))?
+        .to_string();
 
-    let translation_prompt = format!("You are a translator.  You will be given a Source language
-and Target language and Text.  Return ONLY the translation of Source language into Target language.
-
-Source language: {}
-Target language: {}
-Text: {}
-
-", source_language, target_language, text);
-
-    let message = Message { 
-        role: Role::User, 
-        content: vec![ContentBlock::Text { text: translation_prompt }]
-    };
-    let request = MessagesRequestBuilder::default()
-        .model("claude-3-haiku-20240307".to_string())
-        .max_tokens::<u16>(400)
-        .stream(false)  
-        .messages(vec![message])
-        .build()?;
-
-    let response = client.messages(request).await.unwrap();
-    match response.content.get(0).unwrap() {
-        ContentBlock::Text { text } => Ok(text.to_string()),
-        _ => panic!("Not text.")
-    }
+    Ok(translation)
 }
 
 fn main() {
@@ -114,13 +110,30 @@ fn build_ui(app: &Application) {
 
     let word_box = GtkBox::new(Orientation::Horizontal, 10);
     word_box.add_css_class("text-xl");
-    let words = values_vec[segment_index.get()].text.split(' ');
+    let subtitles = values_vec[segment_index.get()].text.to_string();
+    let words = subtitles.split(' ');
     for word in words {
-
-        let word_label = Text::builder().with_text("hello").build();
-
-        word_label.connect_clicked
-        word_box.append(&word_label);
+        let word = word.to_string();
+        let word_text = Text::builder()
+            .text("hello")
+            .editable(false)
+            .build();
+        let click_controller = GestureClick::new();
+        click_controller.connect_pressed(move |_gesture, _n_press, _x, _y| {
+            let word = word.clone();
+            glib::spawn_future_local(async move {
+                    let word = word.clone();
+                    let translation = get_translation(
+                        &word,
+                        "English",
+                        "Spanish",
+                    ).await.unwrap();
+                    println!("{}", translation);
+                }
+            );
+        });
+        word_text.add_controller(click_controller);
+        word_box.append(&word_text);
     }
 
     // let next_button = Button::with_label("Next");
