@@ -1,7 +1,8 @@
 mod translation;
+mod word_box;
 
 use gtk::gdk::{Cursor, Display};
-use gtk::{prelude::*, Button, FlowBox, GestureClick, Text};
+use gtk::{prelude::*, Button, FlowBox, GestureClick, Grid, Text};
 use gtk::{Application, ApplicationWindow, Video, Box, Orientation, CssProvider};
 use serde::{Deserialize, Serialize};
 use std::cell::Cell;
@@ -20,6 +21,17 @@ struct Segment {
     text: String,
     media_path: String,
     language: String,
+}
+
+fn load_css() {
+    let provider = CssProvider::new();
+    provider.load_from_string(include_str!("style.css"));
+
+    gtk::style_context_add_provider_for_display(
+        &Display::default().expect("Could not connect to a display."),
+        &provider,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
 }
 
 fn go_to_next_video(
@@ -69,16 +81,16 @@ fn go_to_next_video(
 
 fn build_ui(app: &Application) {
     // Basic scaffold
-    let main_box = Box::new(Orientation::Horizontal, 5);
+    let main_grid = Grid::new();
+    main_grid.set_column_homogeneous(true);
 
     let left_box = Box::new(Orientation::Vertical, 5);
-    left_box.set_font_size(40);
-
+    left_box.add_css_class("large-text");
     let right_box = Box::new(Orientation::Vertical, 5);
     let translation_box = Box::new(Orientation::Vertical, 5);
     right_box.append(&translation_box);
-    main_box.append(&left_box);
-    main_box.append(&right_box);
+    main_grid.attach(&left_box, 0, 0, 4, 1);
+    main_grid.attach(&right_box, 0, 0, 1, 1);
 
     let segment_index = Cell::<usize>::new(0);
     let dir_path = dirs::home_dir().unwrap().join(".flashcard/segments");
@@ -113,6 +125,7 @@ fn build_ui(app: &Application) {
     let (tx, rx) = mpsc::channel();
 
     let word_box = FlowBox::new();
+    word_box.add_css_class("lg-font");
     word_box.set_cursor_from_name(Some("pointer"));
     let subtitles = values_vec[segment_index.get()].text.to_string();
     let language = values_vec[segment_index.get()].language.to_string();
@@ -189,7 +202,7 @@ fn build_ui(app: &Application) {
         .title("SRS")
         .default_width(1000)
         .default_height(1000)
-        .child(&main_box)
+        .child(&main_grid)
         .build();
 
     window.present();
@@ -200,6 +213,7 @@ fn main() {
         .application_id("com.tongues.srs")
         .build();
 
+    app.connect_startup(|_| load_css());
     app.connect_activate(move |app| {
         build_ui(app);
     });
