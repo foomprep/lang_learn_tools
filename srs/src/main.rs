@@ -1,12 +1,12 @@
 mod translation;
 
-use gtk::gdk::Display;
+use gtk::gdk::{Cursor, Display};
 use gtk::{prelude::*, Button, FlowBox, GestureClick, Text};
-use gtk::{Application, ApplicationWindow, Video, Box as GtkBox, Orientation, CssProvider};
-use gio::File;
+use gtk::{Application, ApplicationWindow, Video, Box, Orientation, CssProvider};
 use serde::{Deserialize, Serialize};
 use std::cell::Cell;
-use std::sync::mpsc;
+use gio::File;
+use std::sync::mpsc::{self, Sender};
 use std::time::Duration;
 use std::{fs, thread};
 use std::path::PathBuf;
@@ -22,26 +22,60 @@ struct Segment {
     language: String,
 }
 
-fn load_css() {
-    let provider = CssProvider::new();
-    provider.load_from_string(include_str!("style.css"));
+fn go_to_next_video(
+    next_segment: &Segment,
+    left_box: &Box,
+    tx: Sender<String>,
+) {
+    while let Some(child) = left_box.last_child() {
+        left_box.remove(&child);
+    }
+    let video = Video::new();
+    let file = File::for_path(&next_segment.media_path);
+    video.set_file(Some(&file));
+    video.set_autoplay(true);
+    left_box.append(&video);
 
-    gtk::style_context_add_provider_for_display(
-        &Display::default().expect("Could not connect to a display."),
-        &provider,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-    );
+    let word_box = Box::new(Orientation::Horizontal, 5);
+    let words = next_segment.text.split(' ');
+    for word in words {
+        let word = word.to_string();
+        let word_text = Text::builder()
+            .text(&word)
+            .editable(false)
+            .build();
+        let click_controller = GestureClick::new();
+        let tx_clone = tx.clone();
+        let language = next_segment.language.clone();
+        click_controller.connect_pressed(move |_gesture, _n_press, _x, _y| {
+            let tx_second_clone = tx_clone.clone();
+            let word = word.clone();
+            let language_clone = language.clone();
+            thread::spawn(move || {
+                let word = word.clone();
+                let translation = get_translation(
+                    &word,
+                    &language_clone,
+                    "English",
+                ).unwrap();
+                let _ = tx_second_clone.send(translation);
+            });
+        });
+        word_text.add_controller(click_controller);
+        word_box.append(&word_text);
+    }
+    left_box.append(&word_box);
 }
 
 fn build_ui(app: &Application) {
     // Basic scaffold
-    let main_box = GtkBox::new(Orientation::Horizontal, 5);
-    let left_box = GtkBox::new(Orientation::Vertical, 5);
-    left_box.add_css_class("h-3/4");
-    left_box.add_css_class("text-xl");
-    let right_box = GtkBox::new(Orientation::Vertical, 5);
-    right_box.add_css_class("h-1/4");
-    let translation_box = GtkBox::new(Orientation::Vertical, 5);
+    let main_box = Box::new(Orientation::Horizontal, 5);
+
+    let left_box = Box::new(Orientation::Vertical, 5);
+    left_box.set_font_size(40);
+
+    let right_box = Box::new(Orientation::Vertical, 5);
+    let translation_box = Box::new(Orientation::Vertical, 5);
     right_box.append(&translation_box);
     main_box.append(&left_box);
     main_box.append(&right_box);
@@ -79,9 +113,7 @@ fn build_ui(app: &Application) {
     let (tx, rx) = mpsc::channel();
 
     let word_box = FlowBox::new();
-    word_box.set_vexpand(true);
-    word_box.set_hexpand(true);
-    word_box.add_css_class("word");
+    word_box.set_cursor_from_name(Some("pointer"));
     let subtitles = values_vec[segment_index.get()].text.to_string();
     let language = values_vec[segment_index.get()].language.to_string();
     let words = subtitles.split(' ');
@@ -132,62 +164,31 @@ fn build_ui(app: &Application) {
     });
 
     let next_button = Button::with_label("Next");
+    let segment_index_clone = segment_index.clone();
     next_button.connect_clicked(clone!(
         #[strong]
-        word_box,
-        #[strong]
+        tx,
+        #[weak]
         left_box,
         move |_| {
-            while let Some(child) = word_box.last_child() {
-                word_box.remove(&child);
-            }
-            while let Some(child) = left_box.last_child() {
-                left_box.remove(&child);
-            }
-            segment_index.set(segment_index.get()+1);
-            let video = Video::new();
-            let file = File::for_path(&values_vec[segment_index.get()].media_path);
-            video.set_file(Some(&file));
-            video.set_autoplay(true);
-            left_box.append(&video);
-
-            let words = values_vec[segment_index.get()].text.split(' ');
-            for word in words {
-                let word = word.to_string();
-                let word_text = Text::builder()
-                    .text(&word)
-                    .editable(false)
-                    .build();
-                let click_controller = GestureClick::new();
-                let tx_clone = tx.clone();
-                let language_clone = language.clone();
-                click_controller.connect_pressed(move |_gesture, _n_press, _x, _y| {
-                    let tx_second_clone = tx_clone.clone();
-                    let word = word.clone();
-                    let language_second_clone = language_clone.clone();
-                    thread::spawn(move || {
-                        let word = word.clone();
-                        let translation = get_translation(
-                            &word,
-                            &language_second_clone,
-                            "English",
-                        ).unwrap();
-                        let _ = tx_second_clone.send(translation);
-                    });
-                });
-                word_text.add_controller(click_controller);
-                word_box.append(&word_text);
-            }
-            left_box.append(&word_box);
+            let tx_clone = tx.clone();
+            segment_index_clone.set(segment_index_clone.get()+1);
+            let segment = &values_vec[segment_index_clone.get()];
+            go_to_next_video(&segment, &left_box, tx_clone); 
         }
     ));
     right_box.append(&next_button);
 
+    // let remove_button = Button::with_label("Remove");
+    // remove_button.connect_clicked(clone!(
+    //     let segment = values_vec[segment_index.get()];
+    // ));
+
     let window = ApplicationWindow::builder()
         .application(app)
         .title("SRS")
-        .default_width(800)
-        .default_height(800)
+        .default_width(1000)
+        .default_height(1000)
         .child(&main_box)
         .build();
 
@@ -199,7 +200,6 @@ fn main() {
         .application_id("com.tongues.srs")
         .build();
 
-    app.connect_startup(|_| load_css());
     app.connect_activate(move |app| {
         build_ui(app);
     });
