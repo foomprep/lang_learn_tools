@@ -97,22 +97,13 @@ export const getTranslation = async (
 
 export const deleteSegment = async (segmentPath: string): Promise<void> => {
   try {
-    // Read the JSON file
     const jsonContent = await readTextFile(segmentPath);
-    
-    // Parse the JSON content
     const jsonData = JSON.parse(jsonContent);
-    
-    // Check if media_path property exists
     if (!jsonData.hasOwnProperty('media_path')) {
       throw new Error('media_path property not found in JSON');
     }
-    
-    // Delete the media file
     await remove(jsonData.media_path);
     console.log(`Deleted media file: ${jsonData.media_path}`);
-    
-    // Delete the JSON file
     await remove(segmentPath);
     console.log(`Deleted JSON file: ${segmentPath}`);
   } catch (error) {

@@ -16,7 +16,7 @@ interface SegmentJson {
 interface Word {
   translation: string;
   text: string;
-  audioUrl: string;
+  audioBlob: Blob | undefined;
 }
 
 const credentials = {
@@ -43,7 +43,6 @@ function App() {
   const [translation, setTranslation] = useState<string>('');
   const [word, setWord] = useState<Word>({translation: '', text: '', audioUrl: ''});
   const [language, setLanguage] = useState<string>('');
-  const [videoUrl, setVideoUrl] = useState<string>('');
   const [playbackRate, setPlaybackRate] = useState<string>("Normal");
   const [wordLoading, setWordLoading] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -105,7 +104,6 @@ function App() {
   }
 
   const handleTranslation = async (word: string) => {
-    console.log('handleTranslation');
     setWordLoading(true);
     const translation = await getTranslation(
       translateClient,
@@ -120,11 +118,10 @@ function App() {
       language,
     );
 
-    const audioUrl = speech ? URL.createObjectURL(speech) : '';
     setWord({
       text: word,
       translation: translation ? translation : 'Word could not be translated.',
-      audioUrl: audioUrl,
+      audioBlob: speech,
     });
     setWordLoading(false);
   }
@@ -152,8 +149,6 @@ function App() {
 
   const handlePlayback = (_event: any) => {
     const video = document.getElementById('player') as HTMLVideoElement;
-    console.log("Video loaded");
-    console.log("playbackRate property:", video!.playbackRate);
     if (video!.playbackRate === 1.0) {
       video!.playbackRate = 0.5;
       setPlaybackRate("Slow");
@@ -164,9 +159,17 @@ function App() {
   }
 
   const handleSpeechPlay = async (_event: any) => {
-    invoke('play_audio', { mp3Data: new Uint8Array(10) });
-    // const audio = new Audio(word.audioUrl);
-    // await audio.play();
+    try {
+      if (word.audioBlob) {
+        const arrayBuffer = await word.audioBlob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const audioData = Array.from(uint8Array);
+        await invoke('play_audio', { audioData });
+      }
+    } catch (error) {
+      console.error('Failed to play audio:', error);
+      throw error;
+    }
   }
 
   return (
