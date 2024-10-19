@@ -1,3 +1,4 @@
+use gtk::gdk::Cursor;
 use gtk::prelude::*;
 use gtk::{FlowBox, Label};
 use gtk::glib;
@@ -66,6 +67,7 @@ impl WordBox {
                 let label = Label::new(Some(word));
                 label.set_margin_start(5);
                 label.set_margin_end(5);
+                label.add_css_class("word");
                 flow_box.append(&label);
             }
         }
