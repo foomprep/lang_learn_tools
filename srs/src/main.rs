@@ -91,7 +91,7 @@ fn build_ui(app: &Application) {
     let translation_box = Box::new(Orientation::Vertical, 5);
     right_box.append(&translation_box);
     main_grid.attach(&left_box, 0, 0, 4, 1);
-    main_grid.attach(&right_box, 0, 0, 1, 1);
+    main_grid.attach(&right_box, 5, 5, 1, 1);
 
     let segment_index = Cell::<usize>::new(0);
     let dir_path = dirs::home_dir().unwrap().join(".flashcard/segments");
