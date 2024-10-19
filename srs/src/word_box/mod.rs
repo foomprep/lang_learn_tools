@@ -8,20 +8,20 @@ mod imp {
     use std::cell::RefCell;
 
     #[derive(Default)]
-    pub struct SubtitleFlowBox {
+    pub struct WordBox {
         pub flow_box: RefCell<Option<FlowBox>>,
         pub subtitles: RefCell<String>,
         pub language: RefCell<String>,
     }
 
     #[glib::object_subclass]
-    impl ObjectSubclass for SubtitleFlowBox {
+    impl ObjectSubclass for WordBox {
         const NAME: &'static str = "SubtitleFlowBox";
-        type Type = super::SubtitleFlowBox;
+        type Type = super::WordBox;
         type ParentType = gtk::Widget;
     }
 
-    impl ObjectImpl for SubtitleFlowBox {
+    impl ObjectImpl for WordBox {
         fn constructed(&self) {
             self.parent_constructed();
             
@@ -39,15 +39,15 @@ mod imp {
         }
     }
 
-    impl WidgetImpl for SubtitleFlowBox {}
+    impl WidgetImpl for WordBox {}
 }
 
 glib::wrapper! {
-    pub struct SubtitleFlowBox(ObjectSubclass<imp::SubtitleFlowBox>)
+    pub struct WordBox(ObjectSubclass<imp::WordBox>)
         @extends gtk::Widget;
 }
 
-impl SubtitleFlowBox {
+impl WordBox {
     pub fn new() -> Self {
         glib::Object::builder().build()
     }
@@ -58,12 +58,10 @@ impl SubtitleFlowBox {
         *imp.language.borrow_mut() = language;
 
         if let Some(flow_box) = imp.flow_box.borrow().as_ref() {
-            // Clear existing children
             while let Some(child) = flow_box.first_child() {
                 flow_box.remove(&child);
             }
 
-            // Split subtitles into words and create label for each
             for word in subtitles.split_whitespace() {
                 let label = Label::new(Some(word));
                 label.set_margin_start(5);

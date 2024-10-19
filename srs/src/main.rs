@@ -2,9 +2,10 @@ mod translation;
 mod word_box;
 
 use gtk::gdk::{Cursor, Display};
-use gtk::{prelude::*, Button, FlowBox, GestureClick, Grid, Text};
+use gtk::{prelude::*, Button, GestureClick, Grid, Text};
 use gtk::{Application, ApplicationWindow, Video, Box, Orientation, CssProvider};
 use serde::{Deserialize, Serialize};
+use word_box::WordBox;
 use std::cell::Cell;
 use gio::File;
 use std::sync::mpsc::{self, Sender};
@@ -124,39 +125,43 @@ fn build_ui(app: &Application) {
 
     let (tx, rx) = mpsc::channel();
 
-    let word_box = FlowBox::new();
-    word_box.add_css_class("lg-font");
-    word_box.set_cursor_from_name(Some("pointer"));
+    let word_box = WordBox::new();
     let subtitles = values_vec[segment_index.get()].text.to_string();
     let language = values_vec[segment_index.get()].language.to_string();
-    let words = subtitles.split(' ');
-    for word in words {
-        let word = word.to_string();
-        let word_text = Text::builder()
-            .text(&word)
-            .editable(false)
-            .build();
-        let click_controller = GestureClick::new();
-        let tx_clone = tx.clone();
-        let language_clone = language.clone();
-        click_controller.connect_pressed(move |_gesture, _n_press, _x, _y| {
-            let tx_second_clone = tx_clone.clone();
-            let word = word.clone();
-            let language_second_clone = language_clone.clone();
-            thread::spawn(move || {
-                let word = word.clone();
-                let translation = get_translation(
-                    &word,
-                    &language_second_clone,
-                    "English",
-                ).unwrap();
-                let _ = tx_second_clone.send(translation);
-            });
-        });
-        word_text.add_controller(click_controller);
-        word_box.append(&word_text);
-    }
-    left_box.append(&word_box);
+    word_box.set_content(subtitles, language);
+    // let word_box = FlowBox::new();
+    // word_box.add_css_class("lg-font");
+    // word_box.set_cursor_from_name(Some("pointer"));
+    // let subtitles = values_vec[segment_index.get()].text.to_string();
+    // let language = values_vec[segment_index.get()].language.to_string();
+    // let words = subtitles.split(' ');
+    // for word in words {
+    //     let word = word.to_string();
+    //     let word_text = Text::builder()
+    //         .text(&word)
+    //         .editable(false)
+    //         .build();
+    //     let click_controller = GestureClick::new();
+    //     let tx_clone = tx.clone();
+    //     let language_clone = language.clone();
+    //     click_controller.connect_pressed(move |_gesture, _n_press, _x, _y| {
+    //         let tx_second_clone = tx_clone.clone();
+    //         let word = word.clone();
+    //         let language_second_clone = language_clone.clone();
+    //         thread::spawn(move || {
+    //             let word = word.clone();
+    //             let translation = get_translation(
+    //                 &word,
+    //                 &language_second_clone,
+    //                 "English",
+    //             ).unwrap();
+    //             let _ = tx_second_clone.send(translation);
+    //         });
+    //     });
+    //     word_text.add_controller(click_controller);
+    //     word_box.append(&word_text);
+    // }
+    left_box.append(&word_box.flow_box().unwrap());
 
     let translation_box_clone = translation_box.clone();
     glib::timeout_add_local(Duration::from_millis(100), move || {
