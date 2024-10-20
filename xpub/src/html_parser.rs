@@ -17,6 +17,7 @@ const SCRIPT: &str = r#"
         display: flex;
         gap: 10px;
         justifyContent: 'center';
+        cursor: pointer;
     }
 
     /* CSS for modal */
@@ -38,7 +39,6 @@ const SCRIPT: &str = r#"
         margin: 15% auto; /* 15% from the top and centered */
         padding: 20px;
         border: 1px solid #888;
-        width: 80%; /* Could be more or less, depending on screen size */
     }
 
     .close {
@@ -199,7 +199,7 @@ const SCRIPT: &str = r#"
     }
 
     // Event listener for when text is selected
-    document.addEventListener('selectionchange', function() {
+    document.addEventListener('mouseup', function() {
         const selectedText = getSelectedText();
         if (selectedText) {
             console.log('Selected text:', selectedText);
