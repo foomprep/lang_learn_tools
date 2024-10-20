@@ -20,8 +20,6 @@ struct Args {
 
 fn main() {
     let args = Args::parse();   
-    // This will be used with a later version that relies on third party model
-    //let language = args.lang;
 
     let input_path = args.input;
     let input_zip_path = if Path::new(&input_path).is_absolute() {
@@ -43,6 +41,7 @@ fn main() {
         &input_zip_path, 
         &output_zip_path,
         wrap_words_in_paragraphs,
+        &args.lang,
     );
 
     println!("Epub modified successfully!");
@@ -51,7 +50,8 @@ fn main() {
 fn modify_files_in_zip(
     input_path: &PathBuf, 
     output_path: &PathBuf,
-    modify_fn: fn(&str) -> String,
+    modify_fn: fn(&str, &str) -> String,
+    language: &str,
 ) -> io::Result<()> {
     let input = std::fs::File::open(input_path).unwrap();
     let output = std::fs::File::create(output_path).unwrap();
@@ -66,7 +66,7 @@ fn modify_files_in_zip(
         if file_name.ends_with(".xhtml") || file_name.ends_with(".html") {
             let mut contents = String::new();
             file.read_to_string(&mut contents)?;
-            let modified_contents = modify_fn(&contents);
+            let modified_contents = modify_fn(&contents, language);
             modified_files.insert(file_name, modified_contents.into_bytes());
         } else {
             // Copy the file as is
